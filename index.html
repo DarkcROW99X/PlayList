@@ -98,12 +98,38 @@ async function commitCSV() {
     });
 
     alert("✅ CSV aggiornato su GitHub!");
-    loadCSV(); // Ricarica per aggiornare SHA
 
+
+    async function loadCSV() {
+  console.log("🟡 Inizio caricamento CSV...");
+
+  try {
+    const res = await octokit.repos.getContent({
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
+      path: FILE_PATH,
+      ref: BRANCH
+    });
+
+    console.log("✅ File caricato da GitHub:", res);
+
+    fileSha = res.data.sha;
+    const csvContent = atob(res.data.content);
+
+    const parsed = Papa.parse(csvContent, { header: true });
+    console.log("✅ CSV parsato:", parsed.data);
+
+    table = new Tabulator("#csv-table", {
+      data: parsed.data,
+      autoColumns: true,
+      layout: "fitDataStretch",
+    });
+
+    console.log("✅ Tabella inizializzata");
 
   } catch (err) {
-    alert("Errore durante il salvataggio: " + err.message);
-    console.error(err);
+    console.error("❌ Errore nel caricamento CSV:", err);
+    alert("Errore nel caricamento del CSV: " + err.message);
   }
 }
 
