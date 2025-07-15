@@ -2,9 +2,9 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
+  <script src="https://cdn.jsdelivr.net/npm/@octokit/rest@19.0.7/dist/octokit.umd.min.js"></script>
   <title>Editor CSV - PlayListLuglio2025</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@octokit/rest/dist-web/index.js"></script>
   <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator.min.css" rel="stylesheet">
   <script src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
   <style>
@@ -49,7 +49,8 @@
     let table;
     let fileSha = null;
 
-    const octokit = new Octokit.Octokit({ auth: GITHUB_TOKEN });
+    const octokit = new Octokit({ auth: GITHUB_TOKEN });
+
 
     async function loadCSV() {
       try {
