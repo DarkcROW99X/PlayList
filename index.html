@@ -51,8 +51,8 @@
 
     let table;
     let fileSha = null;
+    const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
-   const octokit = new octokit.Octokit({ auth: GITHUB_TOKEN });
 
 
     // 🔽 Carica il CSV da GitHub e lo mostra
