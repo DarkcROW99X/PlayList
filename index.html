@@ -2,125 +2,145 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Editor CSV - PlayListLuglio2025</title>
-
-  <!-- Librerie -->
-  <script src="https://cdn.jsdelivr.net/npm/@octokit/rest@19.0.7/dist/octokit.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-  <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator.min.css" rel="stylesheet">
-  <script src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
-
+  <title>Modifica CSV su GitHub</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      background: #f7f7f7;
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
     }
-    h2 {
-      color: #333;
+    td {
+      padding: 5px;
     }
-    #csv-table {
-      margin-bottom: 20px;
+    td[contenteditable="true"] {
+      background-color: #f0f8ff;
     }
     button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      background-color: #007acc;
-      color: white;
-      border: none;
-      border-radius: 5px;
-    }
-    button:hover {
-      background-color: #005fa3;
+      margin: 10px;
     }
   </style>
 </head>
 <body>
-  <h2>🎵 Editor CSV: PlayListLuglio2025</h2>
-  <div id="csv-table"></div>
-  <button onclick="commitCSV()">💾 Salva su GitHub</button>
+  <h1>Editor CSV GitHub</h1>
+  <div id="table-container"></div>
+  <button onclick="addRow()">➕ Aggiungi riga</button>
+  <button onclick="saveCSV()">💾 Salva CSV su GitHub</button>
+  <pre id="status"></pre>
+
+  <!-- Octokit -->
+  <script src="https://cdn.skypack.dev/@octokit/rest"></script>
+  <!-- PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <script>
-    // CONFIGURAZIONE
-    const GITHUB_TOKEN = "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";
-    const REPO_OWNER = "DarkcROW99X";
-    const REPO_NAME = "PlayList";
-    const FILE_PATH = "PlayListLuglio2025.csv";
-    const BRANCH = "main";
+    const token = "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"; // ⚠️ NON sicuro in produzione
+    const owner = "DarkcROW99X";
+    const repo = "PlayList";
+    const path = "PlayListLuglio2025.csv";
+    const branch = "main";
 
-    let table;
-    let fileSha = null;
-    const octokit = new Octokit({ auth: GITHUB_TOKEN });
+    const octokit = new Octokit.Octokit({ auth: token });
+    let csvHeaders = [];
+    let shaOriginale = "";
 
-
-
-    // 🔽 Carica il CSV da GitHub e lo mostra
     async function loadCSV() {
-      console.log("🟡 Inizio caricamento CSV...");
-
       try {
-        const res = await octokit.repos.getContent({
-          owner: REPO_OWNER,
-          repo: REPO_NAME,
-          path: FILE_PATH,
-          ref: BRANCH
+        const { data: fileData } = await octokit.rest.repos.getContent({
+          owner,
+          repo,
+          path,
+          ref: branch,
         });
 
-        console.log("✅ File caricato da GitHub:", res);
+        shaOriginale = fileData.sha;
+        const content = atob(fileData.content);
+        const parsed = Papa.parse(content, { header: true });
+        csvHeaders = parsed.meta.fields;
 
-        fileSha = res.data.sha;
-        const csvContent = atob(res.data.content);
-
-        const parsed = Papa.parse(csvContent, { header: true });
-        console.log("✅ CSV parsato:", parsed.data);
-
-        table = new Tabulator("#csv-table", {
-          data: parsed.data,
-          autoColumns: true,
-          layout: "fitDataStretch",
-        });
-
-        console.log("✅ Tabella inizializzata");
-
-      } catch (err) {
-        console.error("❌ Errore nel caricamento CSV:", err);
-        alert("Errore nel caricamento del CSV: " + err.message);
+        renderTable(parsed.data);
+      } catch (error) {
+        document.getElementById("status").textContent = "Errore nel caricamento: " + error.message;
       }
     }
 
-    // 🔼 Salva le modifiche sul CSV committandole su GitHub
-    async function commitCSV() {
+    function renderTable(data) {
+      const container = document.getElementById("table-container");
+      container.innerHTML = "";
+
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      csvHeaders.forEach(header => {
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        csvHeaders.forEach(header => {
+          const td = document.createElement("td");
+          td.textContent = row[header] || "";
+          td.setAttribute("contenteditable", "true");
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    function addRow() {
+      const table = document.querySelector("table");
+      if (!table) return;
+
+      const newRow = document.createElement("tr");
+      csvHeaders.forEach(() => {
+        const td = document.createElement("td");
+        td.setAttribute("contenteditable", "true");
+        newRow.appendChild(td);
+      });
+      table.querySelector("tbody").appendChild(newRow);
+    }
+
+    async function saveCSV() {
+      const status = document.getElementById("status");
+      const rows = Array.from(document.querySelectorAll("tbody tr"));
+      const data = [];
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const obj = {};
+        csvHeaders.forEach((header, index) => {
+          obj[header] = cells[index]?.textContent.trim() || "";
+        });
+        data.push(obj);
+      });
+
+      const newCsv = Papa.unparse(data);
+
       try {
-        if (!table) {
-          alert("⚠️ La tabella non è stata ancora caricata. Riprova più tardi.");
-          return;
-        }
-
-        const updatedData = table.getData();
-        const newCsv = Papa.unparse(updatedData);
-        const encoded = btoa(newCsv);
-
-        const commitResult = await octokit.repos.createOrUpdateFileContents({
-          owner: REPO_OWNER,
-          repo: REPO_NAME,
-          path: FILE_PATH,
-          message: "🔄 Aggiornamento automatico da editor web",
-          content: encoded,
-          sha: fileSha,
-          branch: BRANCH,
+        await octokit.rest.repos.createOrUpdateFileContents({
+          owner,
+          repo,
+          path,
+          message: "Aggiornamento CSV da frontend",
+          content: btoa(newCsv),
+          sha: shaOriginale,
+          branch: branch,
         });
 
-        alert("✅ CSV aggiornato su GitHub!");
-        loadCSV(); // ricarica per aggiornare lo SHA
-
+        status.textContent = "✅ CSV aggiornato con successo su GitHub!";
       } catch (err) {
-        alert("❌ Errore durante il salvataggio: " + err.message);
-        console.error(err);
+        status.textContent = "❌ Errore durante il salvataggio: " + err.message;
       }
     }
 
-    // 🚀 Avvio
+    // Carica il CSV al caricamento della pagina
     loadCSV();
   </script>
 </body>
