@@ -75,32 +75,39 @@
         console.error(err);
       }
     }
-
-    async function commitCSV() {
-      try {
-        const updatedData = table.getData();
-        const newCsv = Papa.unparse(updatedData);
-        const encoded = btoa(newCsv);
-
-        const commitResult = await octokit.repos.createOrUpdateFileContents({
-          owner: REPO_OWNER,
-          repo: REPO_NAME,
-          path: FILE_PATH,
-          message: "🔄 Aggiornamento automatico da editor web",
-          content: encoded,
-          sha: fileSha,
-          branch: BRANCH,
-        });
-
-        alert("✅ CSV aggiornato su GitHub!");
-        loadCSV(); // Ricarica per aggiornare SHA
-      } catch (err) {
-        alert("Errore durante il salvataggio: " + err.message);
-        console.error(err);
-      }
+    
+async function commitCSV() {
+  try {
+    if (!table) {
+      alert("⚠️ La tabella non è stata ancora caricata. Riprova più tardi.");
+      return;
     }
 
-    loadCSV();
+    const updatedData = table.getData();
+    const newCsv = Papa.unparse(updatedData);
+    const encoded = btoa(newCsv);
+
+    const commitResult = await octokit.repos.createOrUpdateFileContents({
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
+      path: FILE_PATH,
+      message: "🔄 Aggiornamento automatico da editor web",
+      content: encoded,
+      sha: fileSha,
+      branch: BRANCH,
+    });
+
+    alert("✅ CSV aggiornato su GitHub!");
+    loadCSV(); // Ricarica per aggiornare SHA
+
+
+  } catch (err) {
+    alert("Errore durante il salvataggio: " + err.message);
+    console.error(err);
+  }
+}
+
+   
   </script>
 </body>
 </html>
